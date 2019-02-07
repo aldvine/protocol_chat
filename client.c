@@ -22,6 +22,7 @@ struct Client
 {
     char pseudo[256];
     char chanel[256];
+    char message[256];
 };
 typedef struct Client Client;
 #define PORT 1024
@@ -54,23 +55,25 @@ int main(void)
             /* Si l'on reçoit des informations : on les affiche à l'écran */
             // declaration du client , il renseigne son nom et la chaine à laquelle il veut se connecter
             Client c;
-
+            //choix du pseudo et de la chaine 
             printf("Saisir votre pseudo:");
             scanf("%s", c.pseudo);
-            printf("Saisir la chaine:");
+            printf("Saisir la chaine sur laquelle vous voulez diffusez:");
             scanf("%s", c.chanel);
-            int i = 0;
-            while (i < 10)
+
+            while (1)
             {
+                // boucle sur l'envoi de message
+                printf("Saisir votre message:");
+                scanf("%s", c.message);
+               
                 if (send(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
-                    printf("Chaine envoyée : %s\n", c.pseudo);
+                    printf("message envoyé : %s\n", c.message);
                 else
                     printf("Erreur de transmission\n");
-                i++;
             }
 
-            // if (recv(sock, buffer, 32, 0) != SOCKET_ERROR)
-            //     printf("Recu : %s\n", buffer);
+     
         }
         /* sinon, on affiche "Impossible de se connecter" */
         else
