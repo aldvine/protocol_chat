@@ -18,6 +18,12 @@ typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 
+struct Client
+{
+    char pseudo[256];
+    char chanel[256];
+};
+typedef struct Client Client;
 #define PORT 1024
 
 int main(void)
@@ -25,10 +31,9 @@ int main(void)
 
     int erreur = 0;
 
-
     SOCKET sock;
     SOCKADDR_IN sin;
-    char buffer[32] = "";
+    // char buffer[32] = "";
 
     /* Si les sockets Windows fonctionnent */
     if (!erreur)
@@ -47,8 +52,25 @@ int main(void)
             printf("Connection à %s sur le port %d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
 
             /* Si l'on reçoit des informations : on les affiche à l'écran */
-            if (recv(sock, buffer, 32, 0) != SOCKET_ERROR)
-                printf("Recu : %s\n", buffer);
+            // declaration du client , il renseigne son nom et la chaine à laquelle il veut se connecter
+            Client c;
+
+            printf("Saisir votre pseudo:");
+            scanf("%s", c.pseudo);
+            printf("Saisir la chaine:");
+            scanf("%s", c.chanel);
+            int i = 0;
+            while (i < 10)
+            {
+                if (send(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
+                    printf("Chaine envoyée : %s\n", c.pseudo);
+                else
+                    printf("Erreur de transmission\n");
+                i++;
+            }
+
+            // if (recv(sock, buffer, 32, 0) != SOCKET_ERROR)
+            //     printf("Recu : %s\n", buffer);
         }
         /* sinon, on affiche "Impossible de se connecter" */
         else

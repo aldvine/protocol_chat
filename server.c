@@ -13,7 +13,12 @@
 typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
-
+struct Client
+{
+    char pseudo[256];
+    char chanel[256];
+};
+typedef struct Client Client;
 #define PORT 1024
 
 int main(void)
@@ -41,9 +46,9 @@ int main(void)
 
         /* Configuration */
         sin.sin_addr.s_addr = htonl(INADDR_ANY); /* Adresse IP automatique */
-        
-        sin.sin_family = AF_INET;                /* Protocole familial (IP) */
-        sin.sin_port = htons(PORT);              /* Listage du port */
+
+        sin.sin_family = AF_INET;   /* Protocole familial (IP) */
+        sin.sin_port = htons(PORT); /* Listage du port */
         sock_err = bind(sock, (SOCKADDR *)&sin, recsize);
 
         /* Si la socket fonctionne */
@@ -59,11 +64,21 @@ int main(void)
                 /* Attente pendant laquelle le client se connecte */
                 printf("Patientez pendant que le client se connecte sur le port %d...\n", PORT);
                 csock = accept(sock, (SOCKADDR *)&csin, &crecsize);
-
-                char chaine[50] = "Hello world"; 
-                send(csock, chaine, sizeof(chaine), 0);
-            
                 printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
+                Client c;
+
+                while (1)
+                {
+                    if(recv(csock, &c, sizeof(c), 0)!= SOCKET_ERROR){
+                        printf("Recu : %s\n", c.pseudo);
+                    }
+                  
+                }
+                // if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR){
+
+                // char chaine[50] = "Hello world";
+                // send(csock, chaine, sizeof(chaine), 0);
+                // SOCKET csock2 = accept(sock, (SOCKADDR *)&csin, &crecsize);
             }
             else
                 perror("listen");
