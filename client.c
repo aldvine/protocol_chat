@@ -9,6 +9,7 @@ client <adresse-serveur> <message-a-transmettre>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -31,6 +32,7 @@ int main(void)
 {
 
     int erreur = 0;
+    int message = 0;
 
     SOCKET sock;
     SOCKADDR_IN sin;
@@ -60,17 +62,19 @@ int main(void)
             scanf("%s", c.pseudo);
             printf("Saisir la chaine sur laquelle vous voulez diffusez:");
             scanf("%s", c.chanel);
+            
+            viderBuffer();
 
             while (1)
             {
                 // boucle sur l'envoi de message
                 printf("Saisir votre message:");
-                scanf("%s", c.message);
-               
+                fgets(c.message, 256, stdin);
                 if (send(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
-                    printf("message envoyé : %s\n", c.message);
+                    printf("message envoyé : %s", c.message);
                 else
                     printf("Erreur de transmission\n");
+                message = 1;
             }
 
      
@@ -89,4 +93,13 @@ int main(void)
     getchar();
 
     return EXIT_SUCCESS;
+}
+
+void viderBuffer()
+{
+	int c = 0;
+	while (c != '\n' && c != EOF)
+	{
+		c = getchar();
+	}
 }
