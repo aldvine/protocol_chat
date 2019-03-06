@@ -10,6 +10,7 @@ client <adresse-serveur> <message-a-transmettre>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
 #include <errno.h>
 
 void *messageServer(void *data);
@@ -35,6 +36,7 @@ int main(void)
 {
 
     int erreur = 0;
+    int message = 0;
 
     SOCKET sock;
     
@@ -65,6 +67,8 @@ int main(void)
             scanf("%s", c.pseudo);
             printf("Saisir la chaine sur laquelle vous voulez diffusez:");
             scanf("%s", c.chanel);
+            
+            viderBuffer();
 
             // ecoute des messages
             pthread_t thread;
@@ -74,12 +78,12 @@ int main(void)
             {
                 // boucle sur l'envoi de message
                 printf("Saisir votre message:");
-                scanf("%s", c.message);
-               
+                fgets(c.message, 256, stdin);
                 if (send(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
-                    printf("message envoyé : %s\n", c.message);
+                    printf("message envoyé : %s", c.message);
                 else
                     printf("Erreur de transmission\n");
+                message = 1;
             }
 
      
@@ -100,6 +104,14 @@ int main(void)
     return EXIT_SUCCESS;
 }
 
+void viderBuffer()
+{
+	int c = 0;
+	while (c != '\n' && c != EOF)
+	{
+		c = getchar();
+	}
+}
 void *messageServer(void *socket)
 {   
     Client c;
