@@ -8,7 +8,8 @@
 #include <pthread.h>
 #include <errno.h>
 
-void *communicationClient(void *data);
+void *connectionClient(void *data);
+void *messageClient(void *data);
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -26,15 +27,17 @@ struct Client
 typedef struct Client Client;
 #define PORT 1024
 SOCKET csock;
-fd_set readfs;
-Client c;
 
+
+SOCKET list_c[10];
+int i = 0;
+SOCKET sock;
 int main(void)
 {
     /* Socket et contexte d'adressage du serveur */
 
     SOCKADDR_IN sin;
-    SOCKET sock;
+
     socklen_t recsize = sizeof(sin);
     int sock_err;
 
@@ -49,7 +52,7 @@ int main(void)
     /* Si la socket est valide */
     if (sock != INVALID_SOCKET)
     {
-        printf("La socket %d e./st maintenant ouverte en mode TCP/IP\n", sock);
+        printf("La socket %d est maintenant ouverte en mode TCP/IP\n", sock);
 
         /* Configuration */
         sin.sin_addr.s_addr = htonl(INADDR_ANY); /* Adresse IP automatique */
@@ -68,29 +71,19 @@ int main(void)
             /* Si la socket fonctionne */
             if (sock_err != SOCKET_ERROR)
             {
-                pthread_t thread;
-
                 while (1)
                 {
-                    /* Attente pendant laquelle le client se connecte */
+                    SOCKADDR_IN csin;
+                    int crecsize = sizeof csin;
                     printf("Patientez pendant que le client se connecte sur le port %d...\n", PORT);
-                    csock = accept(sock, (SOCKADDR *)&csin, &crecsize);
+
+                    SOCKET csock = accept(sock, (SOCKADDR *)&csin, &crecsize);
+                    i++;
+                    list_c[i] = csock; // ajout de la socket dans un tableau
                     printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
-
-                    pthread_create(&thread, NULL, communicationClient, NULL);
+                    pthread_t thread;
+                    pthread_create(&thread, NULL, messageClient, (void *)(&csock));
                 }
-                Client c;
-
-                if (recv(csock, &c, sizeof(c), 0) != SOCKET_ERROR)
-                {
-                    printf("Recu : %s\n", c.pseudo);
-                }
-
-                // if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR){
-
-                // char chaine[50] = "Hello world";
-                // send(csock, chaine, sizeof(chaine), 0);
-                // SOCKET csock2 = accept(sock, (SOCKADDR *)&csin, &crecsize);
             }
             else
                 perror("listen");
@@ -112,18 +105,24 @@ int main(void)
 }
 
 // faire la fonction permettant de recevoir et de renvoyer les messages au bons clients
-void *communicationClient(void *data)
-{
-
+void *messageClient(void *socket)
+{   
+    fd_set readfs;
+    Client c;
+    int sock = *(int*)socket;
     while (1)
     {
+
         /* On vide l'ensemble de lecture et on lui ajoute 
                         la socket serveur */
         FD_ZERO(&readfs);
-        FD_SET(csock, &readfs);
-
+        FD_SET(sock, &readfs);
+        // for (int j = 0; j <= i; j++)
+        // {
+        //     printf("user  %d:\n", list_c[j]);
+        // }
         /* Si une erreur est survenue au niveau du select */
-        if (select(csock + 1, &readfs, NULL, NULL, NULL) < 0)
+        if (select(sock + 1, &readfs, NULL, NULL, NULL) < 0)
         {
             perror("select()");
             exit(errno);
@@ -131,16 +130,14 @@ void *communicationClient(void *data)
 
         /* On regarde si la socket serveur contient des 
                         informations à lire */
-        if (FD_ISSET(csock, &readfs))
+        if (FD_ISSET(sock, &readfs))
         {
-            /* Juste pour l'exemple nous acceptons le client puis 
-                            nous refermons immédiatement après la connexion */
-            if (recv(csock, &c, sizeof(c), 0) != SOCKET_ERROR)
+            // lecture du message recu
+            if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
             {
                 printf("%s : %s\n", c.pseudo, c.message);
             }
         }
     }
-
-    return NULL;
+     close(sock);
 }

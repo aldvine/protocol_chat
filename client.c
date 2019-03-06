@@ -10,6 +10,7 @@ client <adresse-serveur> <message-a-transmettre>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -27,6 +28,7 @@ struct Client
 };
 typedef struct Client Client;
 #define PORT 1024
+
 
 int main(void)
 {
@@ -102,4 +104,43 @@ void viderBuffer()
 	{
 		c = getchar();
 	}
+}
+
+void *messageServeur(void *socket)
+{   
+    Client c;
+    fd_set readfs;
+
+    int sock = *(int*)socket;
+    while (1)
+    {
+
+        /* On vide l'ensemble de lecture et on lui ajoute 
+                        la socket serveur */
+        FD_ZERO(&readfs);
+        FD_SET(sock, &readfs);
+        // for (int j = 0; j <= i; j++)
+        // {
+        //     printf("user  %d:\n", list_c[j]);
+        // }
+        /* Si une erreur est survenue au niveau du select */
+        if (select(sock + 1, &readfs, NULL, NULL, NULL) < 0)
+        {
+            perror("select()");
+            exit(errno);
+        }
+
+        /* On regarde si la socket serveur contient des 
+                        informations à lire */
+        if (FD_ISSET(sock, &readfs))
+        {
+        
+
+            if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
+            {
+                printf("%s : %s\n", c.pseudo, c.message);
+            }
+        }
+    }
+     close(sock);
 }
