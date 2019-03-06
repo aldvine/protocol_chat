@@ -9,7 +9,10 @@ client <adresse-serveur> <message-a-transmettre>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <errno.h>
+
+void *messageServer(void *data);
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -28,13 +31,13 @@ struct Client
 typedef struct Client Client;
 #define PORT 1024
 
-
 int main(void)
 {
 
     int erreur = 0;
 
     SOCKET sock;
+    
     SOCKADDR_IN sin;
     // char buffer[32] = "";
 
@@ -53,7 +56,7 @@ int main(void)
         if (connect(sock, (SOCKADDR *)&sin, sizeof(sin)) != SOCKET_ERROR)
         {
             printf("Connection à %s sur le port %d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
-
+           
             /* Si l'on reçoit des informations : on les affiche à l'écran */
             // declaration du client , il renseigne son nom et la chaine à laquelle il veut se connecter
             Client c;
@@ -62,6 +65,10 @@ int main(void)
             scanf("%s", c.pseudo);
             printf("Saisir la chaine sur laquelle vous voulez diffusez:");
             scanf("%s", c.chanel);
+
+            // ecoute des messages
+            pthread_t thread;
+            pthread_create(&thread, NULL, messageServer, (void *)(&sock));
 
             while (1)
             {
@@ -93,7 +100,7 @@ int main(void)
     return EXIT_SUCCESS;
 }
 
-void *messageServeur(void *socket)
+void *messageServer(void *socket)
 {   
     Client c;
     fd_set readfs;
@@ -101,7 +108,6 @@ void *messageServeur(void *socket)
     int sock = *(int*)socket;
     while (1)
     {
-
         /* On vide l'ensemble de lecture et on lui ajoute 
                         la socket serveur */
         FD_ZERO(&readfs);
@@ -121,11 +127,9 @@ void *messageServeur(void *socket)
                         informations à lire */
         if (FD_ISSET(sock, &readfs))
         {
-        
-
             if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
             {
-                printf("%s : %s\n", c.pseudo, c.message);
+                printf("Message reçu : %s : %s\n", c.pseudo, c.message);
             }
         }
     }
