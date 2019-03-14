@@ -8,12 +8,10 @@
 #include <pthread.h>
 #include <errno.h>
 
-void *connectionClient(void *data);
-void *messageClient(void *data);
-
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(param) close(param)
+#define CLIENT_MAX 200
 
 typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
@@ -22,16 +20,28 @@ struct Client
 {
     char pseudo[256];
     char chanel[256];
-    char message[256];
+    char message[512];
 };
 typedef struct Client Client;
+struct ClientConfig
+{
+    Client client;
+    SOCKET socket;
+    int connecte; // variable qui sert a savoir si un client est présent dans la case du tableau, si il est pas présent on peut utiliser cette emplacement.
+};
+typedef struct ClientConfig ClientConfig;
+
 #define PORT 1024
 SOCKET csock;
 
-int list_c[10];
+ClientConfig list_c[CLIENT_MAX];
 int i = 0;
 SOCKET ssock;
-int main(void)
+
+void *messageClient(void *clientConf);
+void sendMessage(Client c);
+
+    int main(void)
 {
     /* Socket et contexte d'adressage du serveur */
 
@@ -77,12 +87,12 @@ int main(void)
                     int crecsize = sizeof csin;
                     printf("Patientez pendant que le client se connecte sur le port %d...\n", PORT);
 
-                    SOCKET csock = accept(ssock, (SOCKADDR *)&csin, &crecsize);
-                    i++;
-                    list_c[i] = csock; // ajout de la socket dans un tableau
+                    ClientConfig clientConf ;
+                    clientConf.socket = accept(ssock, (SOCKADDR *)&csin, &crecsize);
+                  
+                  pthread_t thread;
                     printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
-                    pthread_t thread;
-                    pthread_create(&thread, NULL, messageClient, (void *)(&csock));
+                    pthread_create(&thread, NULL, messageClient, &clientConf); // utiliser le tableau pour passer le client.
                 }
             }
             else
@@ -105,23 +115,26 @@ int main(void)
 }
 
 // récuperation d'un message client
-void *messageClient(void *socket)
-{   
+void *messageClient(void *clientConf)
+{
     fd_set readfs;
-    Client c;
-    int sock = *(int*)socket; // récuperation de la socket client passé en parametre 
+    ClientConfig * clientC = (ClientConfig *) clientConf;
+    // on travail avec clientC;
+  
+    int sock = *(int *)socket; // récuperation de la socket client passé en parametre
+
     while (1)
     {
         /* On vide l'ensemble de lecture et on lui ajoute 
                         la socket serveur */
-        FD_ZERO(&readfs); // mise à zero lecture;
-        FD_SET(sock, &readfs); // récuperation des lecture
+        FD_ZERO(&readfs);      // mise à zero lecture;
+        FD_SET((*clientC).socket, &readfs); // récuperation des lecture
         // for (int j = 0; j <= i; j++)
         // {
         //     printf("user  %d:\n", list_c[j]);
         // }
         /* Si une erreur est survenue au niveau du select */
-        if (select(sock + 1, &readfs, NULL, NULL, NULL) < 0)
+        if (select((*clientC).socket + 1, &readfs, NULL, NULL, NULL) < 0)
         {
             perror("select()");
             exit(errno);
@@ -129,23 +142,35 @@ void *messageClient(void *socket)
 
         /* On regarde si la socket serveur contient des 
                         informations à lire */
-        if (FD_ISSET(sock, &readfs))
+        if (FD_ISSET((*clientC).socket, &readfs))
         {
             // lecture du message recu
-            if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
+            if (recv((*clientC).socket, &(*clientC).client, sizeof((*clientC).client), 0) != SOCKET_ERROR)
             {
-                printf("%s : %s\n", c.pseudo, c.message);
-                if (send(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
-                    printf("message envoyé : %s\n", c.message);
-                else
-                    printf("Erreur de transmission\n");
+                printf("%s : %s\n", (*clientC).client.pseudo, (*clientC).client.message);
+                sendMessage((*clientC).client);
             }
         }
     }
-     close(sock);
+    close(sock);
 }
 
 // faire la fonction permettant d'envoyé un message au bon client en utilisant la socket serveur (var global)
-void sendMessage(){
- // TODO
+// il faudra probablement utiliser les mutex pour verouiller la liste de sockets client lors de la lecture ou l'ecriture
+void sendMessage(Client c)
+{
+    for (int i = 0; i < CLIENT_MAX; i++)
+    {
+        // if (list_c[i].c)
+        // {
+            // if (send(list_c[i], &c, sizeof(c), 0) != SOCKET_ERROR)
+            // {
+            //     printf("message envoyé : %s\n", c.message);
+            // }
+            // else
+            // {
+            //     printf("Erreur de transmission\n");
+            // }
+        // }
+    }
 }

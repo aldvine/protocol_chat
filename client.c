@@ -14,6 +14,7 @@ client <adresse-serveur> <message-a-transmettre>
 #include <errno.h>
 
 void *messageServer(void *data);
+void viderBuffer();
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
