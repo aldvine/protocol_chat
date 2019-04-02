@@ -11,7 +11,7 @@
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(param) close(param)
-#define CLIENT_MAX 200
+#define CLIENT_MAXIMUM 200
 
 typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
@@ -27,6 +27,7 @@ struct ClientConfig
 {
     Client client;
     SOCKET socket;
+    pthread_t thread;
     int connecte; // variable qui sert a savoir si un client est présent dans la case du tableau, si il est pas présent on peut utiliser cette emplacement.
 };
 typedef struct ClientConfig ClientConfig;
@@ -34,8 +35,8 @@ typedef struct ClientConfig ClientConfig;
 #define PORT 1024
 SOCKET csock;
 
-ClientConfig list_c[CLIENT_MAX];
-int i = 0;
+ClientConfig list_c[CLIENT_MAXIMUM];
+int nb = 0;
 SOCKET ssock;
 
 void *messageClient(void *clientConf);
@@ -88,11 +89,11 @@ void sendMessage(Client c);
                     printf("Patientez pendant que le client se connecte sur le port %d...\n", PORT);
 
                     ClientConfig clientConf ;
-                    clientConf.socket = accept(ssock, (SOCKADDR *)&csin, &crecsize);
-                  
-                  pthread_t thread;
+                    list_c[nb].socket = accept(ssock, (SOCKADDR *)&csin, &crecsize);
+ 
                     printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
-                    pthread_create(&thread, NULL, messageClient, &clientConf); // utiliser le tableau pour passer le client.
+                    pthread_create(&list_c[nb].thread, NULL, messageClient, &list_c[nb]); // utiliser le tableau pour passer le client.
+                    nb++;
                 }
             }
             else
@@ -159,8 +160,8 @@ void *messageClient(void *clientConf)
 // il faudra probablement utiliser les mutex pour verouiller la liste de sockets client lors de la lecture ou l'ecriture
 void sendMessage(Client c)
 {
-    for (int i = 0; i < CLIENT_MAX; i++)
-    {
+    // for (int i = 0; i < CLIENT_MAXIMUM; i++)
+    // {
         // if (list_c[i].c)
         // {
             // if (send(list_c[i], &c, sizeof(c), 0) != SOCKET_ERROR)
@@ -172,5 +173,5 @@ void sendMessage(Client c)
             //     printf("Erreur de transmission\n");
             // }
         // }
-    }
+    // }
 }
