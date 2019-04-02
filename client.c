@@ -75,7 +75,6 @@ int main(void)
             {
                 // boucle sur l'envoi de message
                 fgets(c.message, 512, stdin);
-                system("\r");
                 if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR)
                     printf("Erreur de transmission\n");
             }
