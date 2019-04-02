@@ -37,7 +37,6 @@ int main(void)
 {
 
     int erreur = 0;
-    int message = 0;
 
     SOCKET sock;
     
@@ -68,23 +67,17 @@ int main(void)
             scanf("%s", c.pseudo);
             printf("Saisir la chaine sur laquelle vous voulez diffusez:");
             scanf("%s", c.chanel);
-            
-            viderBuffer();
 
             // ecoute des messages
             pthread_t thread;
             pthread_create(&thread, NULL, messageServer, (void *)(&sock));
-
             while (1)
             {
                 // boucle sur l'envoi de message
-                printf("Saisir votre message:");
-                fgets(c.message, 256, stdin);
-                if (send(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
-                    printf("message envoyé : %s", c.message);
-                else
+                fgets(c.message, 512, stdin);
+                system("\r");
+                if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR)
                     printf("Erreur de transmission\n");
-                message = 1;
             }
 
      
@@ -142,7 +135,7 @@ void *messageServer(void *socket)
         {
             if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
             {
-                printf("Message reçu : %s : %s\n", c.pseudo, c.message);
+                printf("%s : %s\n", c.pseudo, c.message);
             }
         }
     }
