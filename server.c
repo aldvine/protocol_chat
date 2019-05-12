@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <errno.h>
+#include <string.h>
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -157,7 +158,6 @@ void *messageClient(void *clientConf)
             // lecture du message recu
             if (recv((*clientC).socket, &(*clientC).client, sizeof((*clientC).client), 0) != SOCKET_ERROR)
             {
-                printf("%s : %s\n", (*clientC).client.pseudo, (*clientC).client.message);
                 sendMessage((*clientC).client);
             }
         }
@@ -169,18 +169,30 @@ void *messageClient(void *clientConf)
 // il faudra probablement utiliser les mutex pour verouiller la liste de sockets client lors de la lecture ou l'ecriture
 void sendMessage(Client c)
 {
-    // for (int i = 0; i < CLIENT_MAXIMUM; i++)
-    // {
-        // if (list_c[i].c)
-        // {
-            // if (send(list_c[i], &c, sizeof(c), 0) != SOCKET_ERROR)
-            // {
-            //     printf("message envoyé : %s\n", c.message);
-            // }
-            // else
-            // {
-            //     printf("Erreur de transmission\n");
-            // }
-        // }
-    // }
+    for (int i = 0; i < CLIENT_MAXIMUM; i++)
+    {
+        if (&list_c[i].client)
+        {
+			if (compare(list_c[i].client.chanel,c.chanel)== 1){
+				if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+				{
+					printf("%s : %s\n", c.pseudo, c.message);
+				}
+				else
+				{
+					printf("Erreur de transmission\n");
+				}
+			}
+        }
+    }
+}
+
+int compare(const char* chaine1, const char* chaine2)
+{   unsigned int i=0;
+    if( strlen(chaine1) != strlen(chaine2) )
+        return 0;
+    for(i=0;i<strlen(chaine1);i++)
+        if( chaine1[i] != chaine2[i])
+            return 0;
+    return 1;
 }
