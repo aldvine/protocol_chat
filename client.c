@@ -75,12 +75,11 @@ int main(void)
             {
                 // boucle sur l'envoi de message
                 fgets(c.message, 512, stdin);
-                system("\r");
                 if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR)
                     printf("Erreur de transmission\n");
             }
 
-     
+
         }
         /* sinon, on affiche "Impossible de se connecter" */
         else
@@ -129,7 +128,7 @@ void *messageServer(void *socket)
             exit(errno);
         }
 
-        /* On regarde si la socket serveur contient des 
+        /* On regarde si la socket client contient des 
                         informations à lire */
         if (FD_ISSET(sock, &readfs))
         {

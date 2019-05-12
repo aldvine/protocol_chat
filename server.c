@@ -89,11 +89,20 @@ void sendMessage(Client c);
                     printf("Patientez pendant que le client se connecte sur le port %d...\n", PORT);
 
                     ClientConfig clientConf ;
-                    list_c[nb].socket = accept(ssock, (SOCKADDR *)&csin, &crecsize);
- 
+                    SOCKET socket_temp=accept(ssock, (SOCKADDR *)&csin, &crecsize);
+                    for (int j = 0; j <= CLIENT_MAXIMUM; j++){
+                        if(list_c[j].connecte==0){
+                            nb=j;
+                            list_c[nb].socket = socket_temp; 
+                            list_c[nb].connecte = 1 ;
+                            break;
+                        }else if(j==CLIENT_MAXIMUM){
+                            // sendServerFull(socket);
+                            // envoyé messsage serveur plein au client
+                        }
+                    }
                     printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
                     pthread_create(&list_c[nb].thread, NULL, messageClient, &list_c[nb]); // utiliser le tableau pour passer le client.
-                    nb++;
                 }
             }
             else
