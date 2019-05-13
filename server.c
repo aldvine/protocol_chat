@@ -60,6 +60,12 @@ void sendMessage(Client c);
     /* Création d'une socket */
     ssock = socket(AF_INET, SOCK_STREAM, 0);
 
+    //****** init tableau des client
+        ClientConfig clientConf ;
+        for (int j = 0; j < CLIENT_MAXIMUM; j++){
+            list_c[j].connecte=0;
+        }
+    // *********
     /* Si la socket est valide */
     if (ssock != INVALID_SOCKET)
     {
@@ -91,14 +97,14 @@ void sendMessage(Client c);
 
                     ClientConfig clientConf ;
                     SOCKET socket_temp=accept(ssock, (SOCKADDR *)&csin, &crecsize);
-                    for (int j = 0; j <= CLIENT_MAXIMUM; j++){
+                    for (int j = 0; j < CLIENT_MAXIMUM; j++){
                         if(list_c[j].connecte==0){
                             nb=j;
                             list_c[nb].socket = socket_temp; 
                             list_c[nb].connecte = 1 ;
                             break;
                         }else if(j==CLIENT_MAXIMUM){
-                            // sendServerFull(socket);
+                           shutdown(socket_temp,2);
                             // envoyé messsage serveur plein au client
                         }
                     }
@@ -169,20 +175,22 @@ void *messageClient(void *clientConf)
 // il faudra probablement utiliser les mutex pour verouiller la liste de sockets client lors de la lecture ou l'ecriture
 void sendMessage(Client c)
 {
-    for (int i = 0; i < CLIENT_MAXIMUM; i++)
-    {
-        if (&list_c[i].client)
+    if(c.message[0] != '\0'){
+        for (int i = 0; i < CLIENT_MAXIMUM; i++)
         {
-			if (compare(list_c[i].client.chanel,c.chanel)== 1){
-				if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
-				{
-					printf("%s : %s\n", c.pseudo, c.message);
-				}
-				else
-				{
-					printf("Erreur de transmission\n");
-				}
-			}
+            if (&list_c[i].client)
+            {
+                if (compare(list_c[i].client.chanel,c.chanel)== 1){
+                    if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+                    {
+                        printf("Message transmis par %s\n", list_c[i].client.pseudo);
+                    }
+                    else
+                    {
+                        printf("Erreur de transmission\n");
+                    }
+                }
+            }
         }
     }
 }

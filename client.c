@@ -13,9 +13,6 @@ client <adresse-serveur> <message-a-transmettre>
 #include <string.h>
 #include <errno.h>
 
-void *messageServer(void *data);
-void viderBuffer();
-
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(s) close(s)
@@ -28,16 +25,19 @@ struct Client
 {
     char pseudo[256];
     char chanel[256];
-    char message[256];
+    char message[512];
 };
 typedef struct Client Client;
 #define PORT 1024
+
+void *messageServer(void *data);
+void viderBuffer();
+void LireMessage(Client *c);
 
 int main(void)
 {
 
     int erreur = 0;
-
     SOCKET sock;
     
     SOCKADDR_IN sin;
@@ -74,7 +74,7 @@ int main(void)
             while (1)
             {
                 // boucle sur l'envoi de message
-                fgets(c.message, 512, stdin);
+                LireMessage(&c);
                 if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR)
                     printf("Erreur de transmission\n");
             }
@@ -139,4 +139,8 @@ void *messageServer(void *socket)
         }
     }
      close(sock);
+}
+void LireMessage(Client *c) {
+	fgets(c->message, 512, stdin);
+	c->message[strlen(c->message) - 1] = '\0';
 }
