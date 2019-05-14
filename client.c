@@ -88,7 +88,7 @@ int main(void)
         }
 
         /* On ferme la socket */
-        closesocket(sock);
+        close(sock);
     }
 
     /* On attend que l'utilisateur tape sur une touche, puis on ferme */
@@ -109,9 +109,9 @@ void *messageServer(void *socket)
 {   
     Client c;
     fd_set readfs;
-
     int sock = *(int*)socket;
-    while (1)
+    int statusSocket = 1; // si 0 alors il la socket n'est pas connecté.
+    while (statusSocket)
     {
         /* On vide l'ensemble de lecture et on lui ajoute 
                         la socket serveur */
@@ -132,7 +132,8 @@ void *messageServer(void *socket)
                         informations à lire */
         if (FD_ISSET(sock, &readfs))
         {
-            if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
+            statusSocket = recv(sock, &c, sizeof(c), 0);
+            if (statusSocket != SOCKET_ERROR)
             {
                 printf("%s : %s\n", c.pseudo, c.message);
             }
