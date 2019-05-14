@@ -83,7 +83,7 @@ int main(void)
                
                 LireMessage(&c);
                 if(strcmp(c.message,"/quit")==0){
-                    quit(sock,c);
+                    quitServer(sock,c);
                 }
                 if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR)
                     printf("Erreur de transmission\n");
@@ -154,7 +154,7 @@ void LireMessage(Client *c) {
 	c->message[strlen(c->message) - 1] = '\0';
 }
 
-void quit(SOCKET s, Client c){
+void quitServer(SOCKET s, Client c){
     strcpy(c.message, "/quit");
     send(s, &c, sizeof(c), 0);
     // TODO faire la partie serveur pour passer le client.connecte =0;
