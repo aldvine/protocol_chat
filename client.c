@@ -67,19 +67,27 @@ int main(void)
             scanf("%s", c.pseudo);
             printf("Saisir la chaine sur laquelle vous voulez diffusez:");
             scanf("%s", c.chanel);
-
+            
+            // envoi des infos de channel et pseudo
+            strcpy(c.message, "/connect");
+            if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
+                // TODO faire une cas /connect qui permet de vérifier si le pseudo n'est pas en double s'il existe déja on déconnecte le concerner en lui envoyant un message 
+                printf("Erreur de transmission\n");
+            }
             // ecoute des messages
             pthread_t thread;
             pthread_create(&thread, NULL, messageServer, (void *)(&sock));
             while (1)
             {
                 // boucle sur l'envoi de message
+               
                 LireMessage(&c);
+                if(strcmp(c.message,"/quit")==0){
+                    quit(sock,c);
+                }
                 if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR)
                     printf("Erreur de transmission\n");
             }
-
-
         }
         /* sinon, on affiche "Impossible de se connecter" */
         else
@@ -144,4 +152,17 @@ void *messageServer(void *socket)
 void LireMessage(Client *c) {
 	fgets(c->message, 512, stdin);
 	c->message[strlen(c->message) - 1] = '\0';
+}
+
+void quit(SOCKET s, Client c){
+    strcpy(c.message, "/quit");
+    send(s, &c, sizeof(c), 0);
+    // TODO faire la partie serveur pour passer le client.connecte =0;
+    strcpy(c.message, c.pseudo);
+    strcpy(c.pseudo,"Serveur");
+    strcpy(c.message,  strcat(c.message, " a quitté le salon.\n"));
+    printf("debug : %s\n",c.message);
+    send(s, &c, sizeof(c), 0); // envoie de l'information aux client du salon
+    close(s); // fermeture socket
+    return 0;
 }

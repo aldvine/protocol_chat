@@ -12,7 +12,7 @@
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(param) close(param)
-#define CLIENT_MAXIMUM 1
+#define CLIENT_MAXIMUM 100
 
 typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
@@ -103,8 +103,8 @@ void sendMessageToDest(ClientConfig cConf);
                             nb=j;
                             list_c[nb].socket = socket_temp; 
                             list_c[nb].connecte = 1 ;
-                             printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
-                    pthread_create(&list_c[nb].thread, NULL, messageClient, &list_c[nb]); // utiliser le tableau pour passer le client.
+                            printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
+                            pthread_create(&list_c[nb].thread, NULL, messageClient, &list_c[nb]); // utiliser le tableau pour passer le client.
                             break;
                         }else if(j==CLIENT_MAXIMUM-1){
                             clientConf.socket = socket_temp;
