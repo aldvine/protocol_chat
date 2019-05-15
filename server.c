@@ -12,7 +12,7 @@
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(param) close(param)
-#define CLIENT_MAXIMUM 200
+#define CLIENT_MAXIMUM 100
 
 typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
@@ -42,6 +42,7 @@ SOCKET ssock;
 
 void *messageClient(void *clientConf);
 void sendMessage(Client c);
+void sendMessageToDest(ClientConfig cConf);
 
     int main(void)
 {
@@ -89,27 +90,36 @@ void sendMessage(Client c);
             if (sock_err != SOCKET_ERROR)
             {
                 // écoute des connections clientes
-                while (1)
+                 SOCKADDR_IN csin;
+                int crecsize = sizeof csin;
+                printf("Patientez pendant que le client se connecte sur le port %d...\n", PORT);
+                ClientConfig clientConf ;
+                SOCKET socket_temp;
+                while (socket_temp=accept(ssock, (SOCKADDR *)&csin, &crecsize))
                 {
-                    SOCKADDR_IN csin;
-                    int crecsize = sizeof csin;
-                    printf("Patientez pendant que le client se connecte sur le port %d...\n", PORT);
-
-                    ClientConfig clientConf ;
-                    SOCKET socket_temp=accept(ssock, (SOCKADDR *)&csin, &crecsize);
+                   
                     for (int j = 0; j < CLIENT_MAXIMUM; j++){
                         if(list_c[j].connecte==0){
                             nb=j;
                             list_c[nb].socket = socket_temp; 
                             list_c[nb].connecte = 1 ;
+                            printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
+                            pthread_create(&list_c[nb].thread, NULL, messageClient, &list_c[nb]); // utiliser le tableau pour passer le client.
                             break;
-                        }else if(j==CLIENT_MAXIMUM){
-                           shutdown(socket_temp,2);
+                        }else if(j==CLIENT_MAXIMUM-1){
+                            clientConf.socket = socket_temp;
+                            Client c_temp ;
+                            strcpy(c_temp.pseudo, "Serveur");
+                            strcpy(c_temp.message, "Complet");
+                            clientConf.client = c_temp;
+                            sendMessageToDest(clientConf);
+                            printf("Rejet d'un client pour cause :serveur plein\n");
+                            shutdown(socket_temp,2);
                             // envoyé messsage serveur plein au client
                         }
                     }
-                    printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
-                    pthread_create(&list_c[nb].thread, NULL, messageClient, &list_c[nb]); // utiliser le tableau pour passer le client.
+                   
+                    printf("Patientez pendant que le client se connecte sur le port %d...\n", PORT);
                 }
             }
             else
@@ -181,7 +191,7 @@ void sendMessage(Client c)
     if(c.message[0] != '\0'){
         if(strcmp(c.message, "/liste")==0)
         {
-            stpcpy(c.message, "");
+            strcpy(c.message, "");
             strcat(c.message, "Liste des pseudos connectés au channel :");
             for(int i = 0; i < CLIENT_MAXIMUM; i++)
             {
@@ -189,7 +199,7 @@ void sendMessage(Client c)
                 {
                     if(strcmp(&list_c[i].client.chanel,c.chanel)==0 && list_c[i].connecte == 1)
                     {
-                        stpcpy(tmpPseudo, "\n");
+                        strcpy(tmpPseudo, "\n");
                         strcat(tmpPseudo, &list_c[i].client.pseudo);
                         strcat(c.message, tmpPseudo);
                         if(strcmp(&list_c[i].client.pseudo,c.pseudo)==0)
@@ -215,7 +225,7 @@ void sendMessage(Client c)
                 {
                     if (strcmp(&list_c[i].client.pseudo,c.pseudo)== 0){
                         list_c[i].client = c;
-                        stpcpy(c.message, "Changement de channel OK");
+                        strcpy(c.message, "Changement de channel OK");
                         if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
                         {
                             printf("Changement de channel transmis par %s\n", list_c[i].client.pseudo);
@@ -245,6 +255,19 @@ void sendMessage(Client c)
                 }
             }
         }
+    }
+}
+
+void sendMessageToDest(ClientConfig cConf)
+{
+    Client c= cConf.client;
+    if (send(cConf.socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+    {
+        printf("Message transmis a %s\n", c.pseudo);
+    }
+    else
+    {
+        printf("Erreur de transmission\n");
     }
 }
 

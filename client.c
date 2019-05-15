@@ -35,6 +35,7 @@ void viderBuffer();
 void LireMessage(Client *c);
 void infoClient(Client *c);
 char str_split (char *s, const char *ct);
+void quitServer(SOCKET s, Client c);
 
 int main(void)
 {
@@ -69,15 +70,25 @@ int main(void)
             scanf("%s", c.pseudo);
             printf("Saisir la chaine sur laquelle vous voulez diffusez:");
             scanf("%s", c.chanel);
-
+            
+            // envoi des infos de channel et pseudo
+            strcpy(c.message, "/connect");
+            if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
+                // TODO faire une cas /connect qui permet de vérifier si le pseudo n'est pas en double s'il existe déja on déconnecte le concerner en lui envoyant un message 
+                printf("Erreur de transmission\n");
+            }
             // ecoute des messages
             pthread_t thread;
             pthread_create(&thread, NULL, messageServer, (void *)(&sock));
             while (1)
             {
                 // boucle sur l'envoi de message
+               
                 LireMessage(&c);
-                if (strcmp(c.message, "/info")==0) {
+                if(strcmp(c.message,"/quit")==0){
+                    quitServer(sock,c);
+                } else if (strcmp(c.message, "/info")==0) 
+                {
                     infoClient(&c);
                 } else if(strcmp(c.message, "/channel")==0)
                 {
@@ -90,8 +101,6 @@ int main(void)
                     printf("Erreur de transmission\n");
                 }
             }
-
-
         }
         /* sinon, on affiche "Impossible de se connecter" */
         else
@@ -100,7 +109,7 @@ int main(void)
         }
 
         /* On ferme la socket */
-        closesocket(sock);
+        close(sock);
     }
 
     /* On attend que l'utilisateur tape sur une touche, puis on ferme */
@@ -121,9 +130,9 @@ void *messageServer(void *socket)
 {   
     Client c;
     fd_set readfs;
-
     int sock = *(int*)socket;
-    while (1)
+    int statusSocket = 1; // si 0 alors il la socket n'est pas connecté.
+    while (statusSocket)
     {
         /* On vide l'ensemble de lecture et on lui ajoute 
                         la socket serveur */
@@ -144,7 +153,8 @@ void *messageServer(void *socket)
                         informations à lire */
         if (FD_ISSET(sock, &readfs))
         {
-            if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
+            statusSocket = recv(sock, &c, sizeof(c), 0);
+            if (statusSocket != SOCKET_ERROR)
             {
                 if(strstr(c.message,"Liste des pseudos")!=NULL ||
                     strstr(c.message,"Changement de channel")!=NULL)
@@ -159,6 +169,7 @@ void *messageServer(void *socket)
     }
      close(sock);
 }
+
 void LireMessage(Client *c) {
 	fgets(c->message, 512, stdin);
 	c->message[strlen(c->message) - 1] = '\0';
@@ -169,9 +180,21 @@ void infoClient(Client *c){
     printf("Vous êtes sur le channel : %s \n", c->chanel);
     printf("Votre pseudo est : %s \n", c->pseudo);
     printf("------------------Liste des commandes------------------\n");
-    printf("/q       - Déconnexion\n");
+    printf("/quit    - Déconnexion\n");
     printf("/info    - Information chat\n");
     printf("/liste   - Liste des personnes du chat\n");
     printf("/channel - Changer de channel\n");
     printf("----------------Fin liste des commandes----------------\n");
+}
+
+void quitServer(SOCKET s, Client c){
+    strcpy(c.message, "/quit");
+    send(s, &c, sizeof(c), 0);
+    // TODO faire la partie serveur pour passer le client.connecte =0;
+    strcpy(c.message, c.pseudo);
+    strcpy(c.pseudo,"Serveur");
+    strcpy(c.message,  strcat(c.message, " a quitté le salon.\n"));
+    printf("debug : %s\n",c.message);
+    send(s, &c, sizeof(c), 0); // envoie de l'information aux client du salon
+    close(s); // fermeture socket
 }
