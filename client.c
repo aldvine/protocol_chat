@@ -33,6 +33,8 @@ typedef struct Client Client;
 void *messageServer(void *data);
 void viderBuffer();
 void LireMessage(Client *c);
+void infoClient(Client *c);
+char str_split (char *s, const char *ct);
 
 int main(void)
 {
@@ -75,8 +77,18 @@ int main(void)
             {
                 // boucle sur l'envoi de message
                 LireMessage(&c);
-                if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR)
+                if (strcmp(c.message, "/info")==0) {
+                    infoClient(&c);
+                } else if(strcmp(c.message, "/channel")==0)
+                {
+                    printf("Saisir la chaine sur laquelle vous voulez diffusez:");
+                    scanf("%s", c.chanel);
+                    if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
+                        printf("Erreur de transmission\n");
+                    }
+                }else if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
                     printf("Erreur de transmission\n");
+                }
             }
 
 
@@ -134,7 +146,14 @@ void *messageServer(void *socket)
         {
             if (recv(sock, &c, sizeof(c), 0) != SOCKET_ERROR)
             {
-                printf("%s : %s\n", c.pseudo, c.message);
+                if(strstr(c.message,"Liste des pseudos")!=NULL ||
+                    strstr(c.message,"Changement de channel")!=NULL)
+                {
+                    printf("%s\n", c.message);
+                } else 
+                {
+                    printf("%s : %s\n", c.pseudo, c.message);
+                }
             }
         }
     }
@@ -143,4 +162,16 @@ void *messageServer(void *socket)
 void LireMessage(Client *c) {
 	fgets(c->message, 512, stdin);
 	c->message[strlen(c->message) - 1] = '\0';
+}
+
+void infoClient(Client *c){
+    printf("---------------------Informations----------------------\n");
+    printf("Vous êtes sur le channel : %s \n", c->chanel);
+    printf("Votre pseudo est : %s \n", c->pseudo);
+    printf("------------------Liste des commandes------------------\n");
+    printf("/q       - Déconnexion\n");
+    printf("/info    - Information chat\n");
+    printf("/liste   - Liste des personnes du chat\n");
+    printf("/channel - Changer de channel\n");
+    printf("----------------Fin liste des commandes----------------\n");
 }

@@ -175,19 +175,72 @@ void *messageClient(void *clientConf)
 // il faudra probablement utiliser les mutex pour verouiller la liste de sockets client lors de la lecture ou l'ecriture
 void sendMessage(Client c)
 {
+    ClientConfig clientConf;
+    char tmpPseudo[256];
+
     if(c.message[0] != '\0'){
-        for (int i = 0; i < CLIENT_MAXIMUM; i++)
+        if(strcmp(c.message, "/liste")==0)
         {
-            if (&list_c[i].client)
+            stpcpy(c.message, "");
+            strcat(c.message, "Liste des pseudos connectés au channel :");
+            for(int i = 0; i < CLIENT_MAXIMUM; i++)
             {
-                if (compare(list_c[i].client.chanel,c.chanel)== 1){
-                    if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+                if(&list_c[i].client)
+                {
+                    if(strcmp(&list_c[i].client.chanel,c.chanel)==0 && list_c[i].connecte == 1)
                     {
-                        printf("Message transmis par %s\n", list_c[i].client.pseudo);
+                        stpcpy(tmpPseudo, "\n");
+                        strcat(tmpPseudo, &list_c[i].client.pseudo);
+                        strcat(c.message, tmpPseudo);
+                        if(strcmp(&list_c[i].client.pseudo,c.pseudo)==0)
+                        {
+                            clientConf = list_c[i];
+                        }
                     }
-                    else
-                    {
-                        printf("Erreur de transmission\n");
+                }
+            }
+            if (send(clientConf.socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+            {
+                printf("Liste des pseudos dans le chanel %s transmis à %s\n", c.chanel,c.pseudo);
+            }
+            else
+            {
+                printf("Erreur de transmission message : %s \n", c.message);
+            }
+        } else if(strcmp(c.message, "/channel")==0) 
+        {
+            for (int i = 0; i < CLIENT_MAXIMUM; i++)
+            {
+                if (&list_c[i].client)
+                {
+                    if (strcmp(&list_c[i].client.pseudo,c.pseudo)== 0){
+                        list_c[i].client = c;
+                        stpcpy(c.message, "Changement de channel OK");
+                        if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+                        {
+                            printf("Changement de channel transmis par %s\n", list_c[i].client.pseudo);
+                        }
+                        else
+                        {
+                            printf("Erreur de transmission\n");
+                        }
+                    }
+                }
+            }
+        }else {
+            for (int i = 0; i < CLIENT_MAXIMUM; i++)
+            {
+                if (&list_c[i].client)
+                {
+                    if (compare(list_c[i].client.chanel,c.chanel)== 1){
+                        if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+                        {
+                            printf("Message transmis par %s\n", c.pseudo);
+                        }
+                        else
+                        {
+                            printf("Erreur de transmission\n");
+                        }
                     }
                 }
             }
