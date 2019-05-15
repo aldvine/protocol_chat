@@ -76,6 +76,8 @@ int main(void)
             if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
                 // TODO faire une cas /connect qui permet de vérifier si le pseudo n'est pas en double s'il existe déja on déconnecte le concerner en lui envoyant un message 
                 printf("Erreur de transmission\n");
+            }else{
+                 printf("Connexion en cours...\n");
             }
             // ecoute des messages
             pthread_t thread;
@@ -151,7 +153,7 @@ void *messageServer(void *socket)
 
         /* On regarde si la socket client contient des 
                         informations à lire */
-        if (FD_ISSET(sock, &readfs))
+    if (FD_ISSET(sock, &readfs))
         {
             statusSocket = recv(sock, &c, sizeof(c), 0);
             if (statusSocket != SOCKET_ERROR)
@@ -163,6 +165,7 @@ void *messageServer(void *socket)
         }
     }
      close(sock);
+   
 }
 
 void LireMessage(Client *c) {
