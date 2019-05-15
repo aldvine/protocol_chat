@@ -89,6 +89,10 @@ int main(void)
                 LireMessage(&c);
                 if(strcmp(c.message,"/quit")==0){
                     quitServer(sock,c);
+                    pthread_cancel(thread);
+                    // close(sock);
+                    return 0;
+                    break;
                 } else if (strcmp(c.message, "/info")==0) 
                 {
                     infoClient(&c);
@@ -111,7 +115,7 @@ int main(void)
         }
 
         /* On ferme la socket */
-        close(sock);
+        // close(sock);
     }
 
     /* On attend que l'utilisateur tape sur une touche, puis on ferme */
@@ -153,18 +157,16 @@ void *messageServer(void *socket)
 
         /* On regarde si la socket client contient des 
                         informations à lire */
-    if (FD_ISSET(sock, &readfs))
+        if (FD_ISSET(sock, &readfs))
         {
             statusSocket = recv(sock, &c, sizeof(c), 0);
             if (statusSocket != SOCKET_ERROR)
             {
-                
                 printf("%s\n", c.message);
-                
             }
         }
     }
-     close(sock);
+    //  close(sock);
    
 }
 
@@ -194,5 +196,5 @@ void quitServer(SOCKET s, Client c){
     strcpy(c.message,  strcat(c.message, " a quitté le salon.\n"));
     printf("debug : %s\n",c.message);
     send(s, &c, sizeof(c), 0); // envoie de l'information aux client du salon
-    close(s); // fermeture socket
+    // close(s); // fermeture socket
 }

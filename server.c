@@ -177,6 +177,9 @@ void *messageClient(void *clientConf)
             // lecture du message recu
             if (recv((*clientC).socket, &(*clientC).client, sizeof((*clientC).client), 0) != SOCKET_ERROR)
             {
+                if(strcmp((*clientC).client.message,"/quit")==0){
+                    pthread_exit(NULL);
+                }
                 sendMessage(*clientC,(*clientC).client);
             }
         }
