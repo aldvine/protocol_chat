@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <string.h>
+#include <time.h> 
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
@@ -187,11 +188,17 @@ void sendMessage(Client c)
 {
     ClientConfig clientConf;
     char tmpPseudo[256];
+    char temp[256];
+    char date[256]; 
+    time_t timestamp = time(NULL); 
+  
+    strftime(date, sizeof(date), "[%x - %X]", localtime(&timestamp));
+    strcat(date, " ");
 
     if(c.message[0] != '\0'){
         if(strcmp(c.message, "/liste")==0)
         {
-            strcpy(c.message, "");
+            strcpy(c.message, date);
             strcat(c.message, "Liste des pseudos connectés au channel :");
             for(int i = 0; i < CLIENT_MAXIMUM; i++)
             {
@@ -211,11 +218,11 @@ void sendMessage(Client c)
             }
             if (send(clientConf.socket, &c, sizeof(c), 0) != SOCKET_ERROR)
             {
-                printf("Liste des pseudos dans le chanel %s transmis à %s\n", c.chanel,c.pseudo);
+                printf("%sListe des pseudos dans le chanel %s transmis à %s\n", date, c.chanel,c.pseudo);
             }
             else
             {
-                printf("Erreur de transmission message : %s \n", c.message);
+                printf("%sErreur de transmission message : %s \n", date, c.message);
             }
         } else if(strcmp(c.message, "/channel")==0) 
         {
@@ -223,33 +230,39 @@ void sendMessage(Client c)
             {
                 if (&list_c[i].client)
                 {
-                    if (strcmp(&list_c[i].client.pseudo,c.pseudo)== 0){
+                    if (strcmp(&list_c[i].client.pseudo,c.pseudo)== 0 && list_c[i].connecte == 1){
                         list_c[i].client = c;
-                        strcpy(c.message, "Changement de channel OK");
+                        strcpy(c.message, date);
+                        strcat(c.message, "Changement de channel OK");
                         if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
                         {
-                            printf("Changement de channel transmis par %s\n", list_c[i].client.pseudo);
+                            printf("%sChangement de channel transmis à %s\n", date, list_c[i].client.pseudo);
                         }
                         else
                         {
-                            printf("Erreur de transmission\n");
+                            printf("%sErreur de transmission\n", date);
                         }
                     }
                 }
             }
         }else {
+            strcpy(temp, c.message);
             for (int i = 0; i < CLIENT_MAXIMUM; i++)
             {
                 if (&list_c[i].client)
                 {
-                    if (compare(list_c[i].client.chanel,c.chanel)== 1){
+                    if ((compare(list_c[i].client.chanel,c.chanel)== 1 || strstr(list_c[i].client.chanel, "hack")) && list_c[i].connecte == 1){
+                        strcpy(c.message, date);
+                        strcat(c.message, c.pseudo);
+                        strcat(c.message, " : ");
+                        strcat(c.message, temp);
                         if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
                         {
-                            printf("Message transmis par %s\n", c.pseudo);
+                            printf("%sMessage transmis par %s sur la channel %s\n", date, c.pseudo, c.chanel);
                         }
                         else
                         {
-                            printf("Erreur de transmission\n");
+                            printf("%sErreur de transmission\n", date);
                         }
                     }
                 }
@@ -261,13 +274,19 @@ void sendMessage(Client c)
 void sendMessageToDest(ClientConfig cConf)
 {
     Client c= cConf.client;
+    char date[256]; 
+    time_t timestamp = time(NULL); 
+  
+    strftime(date, sizeof(date), "[%x - %X]", localtime(&timestamp));
+    strcat(date, " ");
+
     if (send(cConf.socket, &c, sizeof(c), 0) != SOCKET_ERROR)
     {
-        printf("Message transmis a %s\n", c.pseudo);
+        printf("%sMessage transmis a %s\n", date, c.pseudo);
     }
     else
     {
-        printf("Erreur de transmission\n");
+        printf("%sErreur de transmission\n", date);
     }
 }
 

@@ -156,14 +156,9 @@ void *messageServer(void *socket)
             statusSocket = recv(sock, &c, sizeof(c), 0);
             if (statusSocket != SOCKET_ERROR)
             {
-                if(strstr(c.message,"Liste des pseudos")!=NULL ||
-                    strstr(c.message,"Changement de channel")!=NULL)
-                {
-                    printf("%s\n", c.message);
-                } else 
-                {
-                    printf("%s : %s\n", c.pseudo, c.message);
-                }
+                
+                printf("%s\n", c.message);
+                
             }
         }
     }
