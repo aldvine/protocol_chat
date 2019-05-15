@@ -24,7 +24,7 @@ typedef struct sockaddr SOCKADDR;
 struct Client
 {
     char pseudo[256];
-    char chanel[256];
+    char channel[256];
     char message[512];
 };
 typedef struct Client Client;
@@ -69,7 +69,7 @@ int main(void)
             printf("Saisir votre pseudo:");
             scanf("%s", c.pseudo);
             printf("Saisir la chaine sur laquelle vous voulez diffusez:");
-            scanf("%s", c.chanel);
+            scanf("%s", c.channel);
             
             // envoi des infos de channel et pseudo
             strcpy(c.message, "/connect");
@@ -99,7 +99,7 @@ int main(void)
                 } else if(strcmp(c.message, "/channel")==0)
                 {
                     printf("Saisir la chaine sur laquelle vous voulez diffusez:");
-                    scanf("%s", c.chanel);
+                    scanf("%s", c.channel);
                     if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
                         printf("Erreur de transmission\n");
                     }
@@ -177,13 +177,14 @@ void LireMessage(Client *c) {
 
 void infoClient(Client *c){
     printf("---------------------Informations----------------------\n");
-    printf("Vous êtes sur le channel : %s \n", c->chanel);
+    printf("Vous êtes sur le channel : %s \n", c->channel);
     printf("Votre pseudo est : %s \n", c->pseudo);
     printf("------------------Liste des commandes------------------\n");
-    printf("/quit    - Déconnexion\n");
-    printf("/info    - Information chat\n");
-    printf("/liste   - Liste des personnes du chat\n");
-    printf("/channel - Changer de channel\n");
+    printf("/quit         - Déconnexion\n");
+    printf("/info         - Information chat\n");
+    printf("/liste        - Liste des personnes du chat\n");
+    printf("/channel      - Changer de channel\n");
+    printf("/listechannel - Liste des channels du chat\n");
     printf("----------------Fin liste des commandes----------------\n");
 }
 

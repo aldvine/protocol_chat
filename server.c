@@ -21,7 +21,7 @@ typedef struct sockaddr SOCKADDR;
 struct Client
 {
     char pseudo[256];
-    char chanel[256];
+    char channel[256];
     char message[512];
 };
 typedef struct Client Client;
@@ -44,8 +44,13 @@ SOCKET ssock;
 void *messageClient(void *clientConf);
 void sendMessage(ClientConfig cliConf, Client c);
 void sendMessageToDest(ClientConfig cConf);
+void verifPseudo(ClientConfig cliConf, Client c);
+void liste(ClientConfig clientConf, Client c, char *date, char *temp);
+void listechannel(ClientConfig clientConf, Client c, char *date, char *temp);
+void channel(Client c, char *date);
+void envoisimple(Client c, char *temp, char *date);
 
-    int main(void)
+int main(void)
 {
     /* Socket et contexte d'adressage du serveur */
 
@@ -192,7 +197,6 @@ void *messageClient(void *clientConf)
 void sendMessage(ClientConfig cliConf ,Client c)
 {
     ClientConfig clientConf;
-    char tmpPseudo[256];
     char temp[256];
     char date[256]; 
     time_t timestamp = time(NULL); 
@@ -203,107 +207,20 @@ void sendMessage(ClientConfig cliConf ,Client c)
     if(c.message[0] != '\0'){
         if(strcmp(c.message, "/connect")==0)
         {
-            int pseudoExist =0;
-            for(int i = 0; i < CLIENT_MAXIMUM; i++)
-            {
-                if(list_c[i].socket != cliConf.socket  && list_c[i].connecte==1)
-                {
-                    if(strcmp(list_c[i].client.pseudo,c.pseudo)==0)
-                    {
-                        pseudoExist  =1;
-                        break;
-                    }
-                }
-            }
-            Client cli_temp ;
-            if(pseudoExist==1){
-                cliConf.connecte=0;
-                strcpy(cli_temp.pseudo ,"Serveur");
-                strcpy(cli_temp.message, "Ce pseudo existe déjà, déconnexion du serveur...");
-            }else{
-                strcpy(cli_temp.pseudo ,"Serveur");
-                strcpy(cli_temp.message, "Bienvenue sur le chat en ligne !");
-                cliConf.connecte =1;
-                printf("Accueil d'un nouveau client ( %s ) chanel: (%s)\n", c.chanel,c.pseudo);
-            }
-            if (send(cliConf.socket, &cli_temp, sizeof(cli_temp), 0) == SOCKET_ERROR){
-                    printf("Problème de transmission");
-            }
-            if(pseudoExist==1){
-                printf("Ce pseudo existe déjà, déconnexion du serveur...");
-                close(cliConf.socket);
-            }
+            verifPseudo(cliConf, c);
             
         }else if(strcmp(c.message, "/liste")==0){
-            strcpy(c.message, "");
-            strcat(c.message, "Liste des pseudos connectés au channel :");
-            for(int i = 0; i < CLIENT_MAXIMUM; i++)
-            {
-                if(&list_c[i].client)
-                {
-                    if(strcmp(&list_c[i].client.chanel,c.chanel)==0 && list_c[i].connecte == 1)
-                    {
-                        strcpy(tmpPseudo, "\n");
-                        strcat(tmpPseudo, &list_c[i].client.pseudo);
-                        strcat(c.message, tmpPseudo);
-                        if(strcmp(&list_c[i].client.pseudo,c.pseudo)==0)
-                        {
-                            clientConf = list_c[i];
-                        }
-                    }
-                }
-            }
-            if (send(clientConf.socket, &c, sizeof(c), 0) != SOCKET_ERROR)
-            {
-                printf("%sListe des pseudos dans le chanel %s transmis à %s\n", date, c.chanel,c.pseudo);
-            }
-            else
-            {
-                printf("%sErreur de transmission message : %s \n", date, c.message);
-            }
+            liste(clientConf, c, date, temp);
+
+        } else if(strcmp(c.message, "/listechannel")==0){
+            listechannel(clientConf, c, date, temp);
+
         } else if(strcmp(c.message, "/channel")==0) 
         {
-            for (int i = 0; i < CLIENT_MAXIMUM; i++)
-            {
-                if (&list_c[i].client)
-                {
-                    if (strcmp(&list_c[i].client.pseudo,c.pseudo)== 0 && list_c[i].connecte == 1){
-                        list_c[i].client = c;
-                        strcpy(c.message, date);
-                        strcat(c.message, "Changement de channel OK");
-                        if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
-                        {
-                            printf("%sChangement de channel transmis à %s\n", date, list_c[i].client.pseudo);
-                        }
-                        else
-                        {
-                            printf("%sErreur de transmission\n", date);
-                        }
-                    }
-                }
-            }
-        }else {
-            strcpy(temp, c.message);
-            for (int i = 0; i < CLIENT_MAXIMUM; i++)
-            {
-                if (&list_c[i].client)
-                {
-                    if ((compare(list_c[i].client.chanel,c.chanel)== 1 || strstr(list_c[i].client.chanel, "hack")) && list_c[i].connecte == 1){
-                        strcpy(c.message, date);
-                        strcat(c.message, c.pseudo);
-                        strcat(c.message, " : ");
-                        strcat(c.message, temp);
-                        if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
-                        {
-                            printf("%sMessage transmis par %s sur la channel %s\n", date, c.pseudo, c.chanel);
-                        }
-                        else
-                        {
-                            printf("%sErreur de transmission\n", date);
-                        }
-                    }
-                }
-            }
+            channel(c, date);
+
+        } else {
+            envoisimple(c, temp, date);
         }
     }
 }
@@ -335,4 +252,147 @@ int compare(const char* chaine1, const char* chaine2)
         if( chaine1[i] != chaine2[i])
             return 0;
     return 1;
+}
+
+void verifPseudo(ClientConfig cliConf, Client c){
+    int pseudoExist =0;
+    for(int i = 0; i < CLIENT_MAXIMUM; i++)
+    {
+        if(list_c[i].socket != cliConf.socket  && list_c[i].connecte==1)
+        {
+            if(strcmp(list_c[i].client.pseudo,c.pseudo)==0)
+            {
+                pseudoExist  =1;
+                break;
+            }
+        }
+    }
+    Client cli_temp ;
+    if(pseudoExist==1){
+        cliConf.connecte=0;
+        strcpy(cli_temp.pseudo ,"Serveur");
+        strcpy(cli_temp.message, "Ce pseudo existe déjà, déconnexion du serveur...");
+    }else{
+        strcpy(cli_temp.pseudo ,"Serveur");
+        strcpy(cli_temp.message, "Bienvenue sur le chat en ligne !");
+        cliConf.connecte =1;
+        printf("Accueil d'un nouveau client ( %s ) channel: (%s)\n",c.pseudo, c.channel);
+    }
+    if (send(cliConf.socket, &cli_temp, sizeof(cli_temp), 0) == SOCKET_ERROR){
+            printf("Problème de transmission");
+    }
+    if(pseudoExist==1){
+        close(cliConf.socket);
+    }
+}
+
+void liste(ClientConfig clientConf, Client c, char *date, char *temp){
+    strcpy(c.message, date);
+    strcat(c.message, "Serveur : Liste des pseudos connectés au channel :");
+    for(int i = 0; i < CLIENT_MAXIMUM; i++)
+    {
+        if(&list_c[i].client)
+        {
+            if(strcmp(&list_c[i].client.channel,c.channel)==0 && list_c[i].connecte == 1)
+            {
+                strcpy(temp, "\n");
+                strcat(temp, &list_c[i].client.pseudo);
+                strcat(c.message, temp);
+                if(strcmp(&list_c[i].client.pseudo,c.pseudo)==0)
+                {
+                    clientConf = list_c[i];
+                }
+            }
+        }
+    }
+    if (send(clientConf.socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+    {
+        printf("%sListe des pseudos dans le channel %s transmis à %s\n", date, c.channel,c.pseudo);
+    }
+    else
+    {
+        printf("%sErreur de transmission message : %s \n", date, c.message);
+    }
+}
+
+void listechannel(ClientConfig clientConf, Client c, char *date, char *temp){
+    char verif[256];
+    strcpy(c.message, date);
+    strcat(c.message, "Serveur : Liste des channels :");
+    strcpy(temp, "");
+    for(int i = 0; i < CLIENT_MAXIMUM; i++)
+    {
+        if(&list_c[i].client)
+        {
+            strcpy(verif, "| ");
+            strcat(verif, &list_c[i].client.channel);
+            strcat(verif, " |");
+            if(list_c[i].connecte == 1 && (strstr(temp, verif)==NULL || strstr(verif, "| hack |")!=NULL))
+            {
+                strcat(temp, "\n| ");
+                strcat(temp, &list_c[i].client.channel);
+                strcat(temp, " |");
+                
+            }
+            if(strcmp(&list_c[i].client.pseudo,c.pseudo)==0)
+            {
+                clientConf = list_c[i];
+            }
+        }
+    }
+    strcat(c.message, temp);
+    if (send(clientConf.socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+    {
+        printf("%sListe des channels transmis dans le channel %s à %s\n", date, c.channel,c.pseudo);
+    }
+    else
+    {
+        printf("%sErreur de transmission message : %s \n", date, c.message);
+    }
+}
+
+void channel(Client c, char *date){
+    for (int i = 0; i < CLIENT_MAXIMUM; i++)
+    {
+        if (&list_c[i].client)
+        {
+            if (strcmp(&list_c[i].client.pseudo,c.pseudo)== 0 && list_c[i].connecte == 1){
+                list_c[i].client = c;
+                strcpy(c.message, date);
+                strcat(c.message, "Serveur : Changement de channel OK");
+                if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+                {
+                    printf("%sChangement de channel transmis à %s\n", date, list_c[i].client.pseudo);
+                }
+                else
+                {
+                    printf("%sErreur de transmission\n", date);
+                }
+            }
+        }
+    }
+}
+
+void envoisimple(Client c, char *temp, char *date){
+    strcpy(temp, c.message);
+    for (int i = 0; i < CLIENT_MAXIMUM; i++)
+    {
+        if (&list_c[i].client)
+        {
+            if ((compare(list_c[i].client.channel,c.channel)== 1 || strstr(list_c[i].client.channel, "hack")) && list_c[i].connecte == 1){
+                strcpy(c.message, date);
+                strcat(c.message, c.pseudo);
+                strcat(c.message, " : ");
+                strcat(c.message, temp);
+                if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
+                {
+                    printf("%sMessage transmis par %s sur la channel %s\n", date, c.pseudo, c.channel);
+                }
+                else
+                {
+                    printf("%sErreur de transmission\n", date);
+                }
+            }
+        }
+    }
 }
