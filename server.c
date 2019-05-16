@@ -186,10 +186,10 @@ void *messageClient(void *clientConf)
                     printf("%s\n",(*clientC).client.pseudo);
                     close((*clientC).socket);
                     shutdown((*clientC).socket,2);
-                    printf("Socket du client %s fermé",    (*clientC).client.pseudo);
+                    printf("Socket du client (%s) fermé\n",    (*clientC).client.pseudo);
                     (*clientC).connecte = 0;
                     //fermeture du thread 
-                    printf("Extinction du thread du client %s",(*clientC).client.pseudo);
+                    printf("Extinction du thread du client (%s)\n",(*clientC).client.pseudo);
                     pthread_exit(NULL);
                     // quitter((*clientC).client);
                 }
