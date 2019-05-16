@@ -119,7 +119,7 @@ int main(void)
                             clientConf.socket = socket_temp;
                             Client c_temp ;
                             strcpy(c_temp.pseudo, "Serveur");
-                            strcpy(c_temp.message, "Complet");
+                            strcpy(c_temp.message, "/full");
                             clientConf.client = c_temp;
                             sendMessageToDest(clientConf);
                             printf("Rejet d'un client pour cause :serveur plein\n");
@@ -158,22 +158,19 @@ void *messageClient(void *clientConf)
     // on travail avec clientC;
   
     int sock = *(int *)socket; // récuperation de la socket client passé en parametre
-
-    while (1)
+    int statusSocket = 0;
+    while (statusSocket != SOCKET_ERROR)
     {
         /* On vide l'ensemble de lecture et on lui ajoute 
                         la socket serveur */
         FD_ZERO(&readfs);      // mise à zero lecture;
         FD_SET((*clientC).socket, &readfs); // récuperation des lecture
-        // for (int j = 0; j <= i; j++)
-        // {
-        //     printf("user  %d:\n", list_c[j]);
-        // }
         /* Si une erreur est survenue au niveau du select */
         if (select((*clientC).socket + 1, &readfs, NULL, NULL, NULL) < 0)
         {
-            perror("select()");
-            exit(errno);
+            printf("Déconnexion d'un client...\n", (*clientC).client.pseudo);
+            (*clientC).connecte = 0;
+            pthread_exit(NULL);
         }
 
         /* On regarde si la socket serveur contient des 
@@ -181,8 +178,21 @@ void *messageClient(void *clientConf)
         if (FD_ISSET((*clientC).socket, &readfs))
         {
             // lecture du message recu
-            if (recv((*clientC).socket, &(*clientC).client, sizeof((*clientC).client), 0) != SOCKET_ERROR)
+            statusSocket = recv((*clientC).socket, &(*clientC).client, sizeof((*clientC).client), 0);
+            if (statusSocket != SOCKET_ERROR)
             {
+                // si demande de déconnexion
+                if(strcmp((*clientC).client.message,"/quit")==0){
+                    printf("%s\n",(*clientC).client.pseudo);
+                    close((*clientC).socket);
+                    shutdown((*clientC).socket,2);
+                    printf("Socket du client %s fermé",    (*clientC).client.pseudo);
+                    (*clientC).connecte = 0;
+                    //fermeture du thread 
+                    printf("Extinction du thread du client %s",(*clientC).client.pseudo);
+                    pthread_exit(NULL);
+                    // quitter((*clientC).client);
+                }
                 sendMessage(*clientC,(*clientC).client);
             }
         }
@@ -203,6 +213,7 @@ void sendMessage(ClientConfig cliConf ,Client c)
     strcat(date, " ");
 
     if(c.message[0] != '\0'){
+    
         if(strcmp(c.message, "/connect")==0)
         {
             verifPseudo(cliConf, c);
@@ -217,8 +228,6 @@ void sendMessage(ClientConfig cliConf ,Client c)
         {
             channel(c, date);
 
-        } else if(strcmp(c.message,"/quitter")==0){
-            quitter(c);
         } else {
             envoisimple(c, temp, date);
         }
@@ -272,6 +281,10 @@ void verifPseudo(ClientConfig cliConf, Client c){
         cliConf.connecte=0;
         strcpy(cli_temp.pseudo ,"Serveur");
         strcpy(cli_temp.message, "Ce pseudo existe déjà, déconnexion du serveur...");
+        if (send(cliConf.socket, &cli_temp, sizeof(cli_temp), 0) == SOCKET_ERROR){
+            printf("Problème de transmission");
+        }
+        strcpy(cli_temp.message, "/full");
     }else{
         strcpy(cli_temp.pseudo ,"Serveur");
         strcpy(cli_temp.message, "Bienvenue sur le chat en ligne !");
@@ -386,28 +399,12 @@ void envoisimple(Client c, char *temp, char *date){
                 strcat(c.message, temp);
                 if (send(list_c[i].socket, &c, sizeof(c), 0) != SOCKET_ERROR)
                 {
-                    printf("%sMessage transmis par %s sur la channel %s\n", date, c.pseudo, c.channel);
+                    printf("%sMessage de %s transmis à %s\n", date, c.pseudo,list_c[i].client.pseudo);
                 }
                 else
                 {
                     printf("%sErreur de transmission\n", date);
                 }
-            }
-        }
-    }
-}
-
-void quitter(Client c){
-    for(int i = 0; i < CLIENT_MAXIMUM; i++)
-    {
-        if(&list_c[i].client)
-        {
-            if(strcmp(&list_c[i].client.pseudo,c.pseudo)==0 && list_c[i].connecte == 1)
-            {
-                pthread_cancel(list_c[i].thread);
-                close(list_c[i].socket);
-                list_c[i].connecte = 0;
-                printf("Socket du client %s fermé",c.pseudo);
             }
         }
     }

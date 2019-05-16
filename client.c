@@ -35,7 +35,7 @@ void viderBuffer();
 void LireMessage(Client *c);
 void infoClient(Client *c);
 char str_split (char *s, const char *ct);
-void quitServer(SOCKET s, Client c);
+void quitServer(SOCKET s, Client c, pthread_t thread);
 
 int main(void)
 {
@@ -87,9 +87,10 @@ int main(void)
                 // boucle sur l'envoi de message
                
                 LireMessage(&c);
-                if(strcmp(c.message,"/quitter")==0){
-                    pthread_cancel(thread);
-                    quitServer(sock,c);
+                if(strcmp(c.message,"/quit")==0){
+                    
+                    quitServer(sock,c,thread);
+                    pthread_cancel(thread); // femreture de la socket
                     // close(sock);
                     return 0;
                     break;
@@ -138,7 +139,7 @@ void *messageServer(void *socket)
     fd_set readfs;
     int sock = *(int*)socket;
     int statusSocket = 1; // si 0 alors il la socket n'est pas connecté.
-    while (statusSocket)
+    while (statusSocket !=-1)
     {
         /* On vide l'ensemble de lecture et on lui ajoute 
                         la socket serveur */
@@ -151,7 +152,7 @@ void *messageServer(void *socket)
         /* Si une erreur est survenue au niveau du select */
         if (select(sock + 1, &readfs, NULL, NULL, NULL) < 0)
         {
-            perror("select()");
+            printf("Une erreur est survenu, veuillez contacter votre administraueur\n");
             exit(errno);
         }
 
@@ -162,11 +163,15 @@ void *messageServer(void *socket)
             statusSocket = recv(sock, &c, sizeof(c), 0);
             if (statusSocket != SOCKET_ERROR)
             {
-                printf("%s\n", c.message);
+                if(strcmp(c.pseudo,"Serveur")==0 && strcmp(c.message,"/full")==0){
+                     close(sock); // fermeture socket
+                     exit(errno);
+                }else{
+                    printf("%s\n", c.message);
+                }
             }
         }
     }
-    //  close(sock);
    
 }
 
@@ -188,19 +193,13 @@ void infoClient(Client *c){
     printf("----------------Fin liste des commandes----------------\n");
 }
 
-void quitServer(SOCKET s, Client c){
-    strcpy(c.message, "/quitter");
-    if(send(s, &c, sizeof(c), 0) == SOCKET_ERROR){
-        printf("Erreur trnasmission\n");
-    } else {
+void quitServer(SOCKET s, Client c, pthread_t thread){
+    strcpy(c.message, "/quit");
+    if(send(s, &c, sizeof(c), 0) != SOCKET_ERROR){
         printf("Message quitter transmis\n");
+    } else {
+        printf("Erreur transmission\n");
     }
-    // TODO faire la partie serveur pour passer le client.connecte =0;
-    strcpy(c.message, c.pseudo);
-    strcpy(c.pseudo,"Serveur");
-    strcpy(c.message,  strcat(c.message, " a quitté le salon.\n"));
-    printf("debug : %s\n",c.message);
-    send(s, &c, sizeof(c), 0); // envoie de l'information aux client du salon
-    sleep(3);
+    // sleep(1);// attente pour éviter des erreurs
     close(s); // fermeture socket
 }
