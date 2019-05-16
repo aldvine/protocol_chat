@@ -43,85 +43,97 @@ int main(void)
     int erreur = 0;
     SOCKET sock;
     
+  
+    char ipServer[15] ;
+    printf("Saisir l'adresse IP du serveur format X.X.X.X \n(pour l'adresse local saisissez 'a' puis entrez)): ");
+    scanf("%s", ipServer);
+    if(strcmp(ipServer,"a")==0){
+        strcpy(ipServer,"127.0.0.1");
+    }
     SOCKADDR_IN sin;
     // char buffer[32] = "";
 
     /* Si les sockets Windows fonctionnent */
     if (!erreur)
     {
-        /* Création de la socket */
-        sock = socket(AF_INET, SOCK_STREAM, 0);
+        int connecte = 0;
+        while(!connecte){
+             /* Création de la socket */
+            sock = socket(AF_INET, SOCK_STREAM, 0);
 
-        /* Configuration de la connexion */
-        sin.sin_addr.s_addr = inet_addr("127.0.0.1");
-        sin.sin_family = AF_INET;
-        sin.sin_port = htons(PORT);
-
-        /* Si l'on a réussi à se connecter */
-        if (connect(sock, (SOCKADDR *)&sin, sizeof(sin)) != SOCKET_ERROR)
-        {
-            printf("Connection à %s sur le port %d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
-           
-            /* Si l'on reçoit des informations : on les affiche à l'écran */
-            // declaration du client , il renseigne son nom et la chaine à laquelle il veut se connecter
-            Client c;
-            //choix du pseudo et de la chaine 
-            printf("Saisir votre pseudo:");
-            scanf("%s", c.pseudo);
-            printf("Saisir la chaine sur laquelle vous voulez diffusez:");
-            scanf("%s", c.channel);
-            
-            // envoi des infos de channel et pseudo
-            strcpy(c.message, "/connect");
-            if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
-                // TODO faire une cas /connect qui permet de vérifier si le pseudo n'est pas en double s'il existe déja on déconnecte le concerner en lui envoyant un message 
-                printf("Erreur de transmission\n");
-            }else{
-                 printf("Connexion en cours...\n");
-            }
-            // ecoute des messages
-            pthread_t thread;
-            pthread_create(&thread, NULL, messageServer, (void *)(&sock));
-            while (1)
+            /* Configuration de la connexion */
+            sin.sin_addr.s_addr = inet_addr(ipServer);
+            sin.sin_family = AF_INET;
+            sin.sin_port = htons(PORT);
+            /* Si l'on a réussi à se connecter */
+            if (connect(sock, (SOCKADDR *)&sin, sizeof(sin)) != SOCKET_ERROR)
             {
-                // boucle sur l'envoi de message
-               
-                LireMessage(&c);
-                if(strcmp(c.message,"/quit")==0){
-                    
-                    quitServer(sock,c,thread);
-                    pthread_cancel(thread); // femreture de la socket
-                    // close(sock);
-                    return 0;
-                    break;
-                } else if (strcmp(c.message, "/info")==0) 
+                connecte =1;
+                printf("Connection à %s sur le port %d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
+            
+                /* Si l'on reçoit des informations : on les affiche à l'écran */
+                // declaration du client , il renseigne son nom et la chaine à laquelle il veut se connecter
+                Client c;
+                //choix du pseudo et de la chaine 
+                printf("Saisir votre pseudo:");
+                scanf("%s", c.pseudo);
+                printf("Saisir la chaine sur laquelle vous voulez diffusez:");
+                scanf("%s", c.channel);
+                
+                // envoi des infos de channel et pseudo
+                strcpy(c.message, "/connect");
+                if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
+                    // TODO faire une cas /connect qui permet de vérifier si le pseudo n'est pas en double s'il existe déja on déconnecte le concerner en lui envoyant un message 
+                    printf("Erreur de transmission\n");
+                }else{
+                    printf("Connexion en cours...\n");
+                }
+                // ecoute des messages
+                pthread_t thread;
+                pthread_create(&thread, NULL, messageServer, (void *)(&sock));
+                while (1)
                 {
-                    infoClient(&c);
-                } else if(strcmp(c.message, "/channel")==0)
-                {
-                    printf("Saisir la chaine sur laquelle vous voulez diffusez:");
-                    scanf("%s", c.channel);
-                    if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
+                    // boucle sur l'envoi de message
+                
+                    LireMessage(&c);
+                    if(strcmp(c.message,"/quit")==0){
+                        
+                        quitServer(sock,c,thread);
+                        pthread_cancel(thread); // femreture de la socket
+                        // close(sock);
+                        return 0;
+                        break;
+                    } else if (strcmp(c.message, "/info")==0) 
+                    {
+                        infoClient(&c);
+                    } else if(strcmp(c.message, "/channel")==0)
+                    {
+                        printf("Saisir la chaine sur laquelle vous voulez diffusez:");
+                        scanf("%s", c.channel);
+                        if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
+                            printf("Erreur de transmission\n");
+                        }
+                    } else if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
                         printf("Erreur de transmission\n");
                     }
-                } else if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
-                    printf("Erreur de transmission\n");
                 }
             }
+            /* sinon, on affiche "Impossible de se connecter" */
+            else
+            {
+                connecte=0;
+                printf("Impossible de se connecter\n");
+                printf("Saisir l'adresse IP du serveur format X.X.X.X \n(pour l'adresse local saisissez 'a' puis entrez)): ");
+                scanf("%s", ipServer);
+                if(strcmp(ipServer,"a")==0){
+                    strcpy(ipServer,"127.0.0.1");
+                }
+            }   
         }
-        /* sinon, on affiche "Impossible de se connecter" */
-        else
-        {
-            printf("Impossible de se connecter\n");
-        }
-
-        /* On ferme la socket */
-        // close(sock);
     }
 
     /* On attend que l'utilisateur tape sur une touche, puis on ferme */
     getchar();
-
     return EXIT_SUCCESS;
 }
 
