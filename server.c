@@ -49,6 +49,7 @@ void liste(ClientConfig clientConf, Client c, char *date, char *temp);
 void listechannel(ClientConfig clientConf, Client c, char *date, char *temp);
 void channel(Client c, char *date);
 void envoisimple(Client c, char *temp, char *date);
+void quitter(Client c);
 
 int main(void)
 {
@@ -182,9 +183,6 @@ void *messageClient(void *clientConf)
             // lecture du message recu
             if (recv((*clientC).socket, &(*clientC).client, sizeof((*clientC).client), 0) != SOCKET_ERROR)
             {
-                if(strcmp((*clientC).client.message,"/quit")==0){
-                    pthread_exit(NULL);
-                }
                 sendMessage(*clientC,(*clientC).client);
             }
         }
@@ -219,6 +217,8 @@ void sendMessage(ClientConfig cliConf ,Client c)
         {
             channel(c, date);
 
+        } else if(strcmp(c.message,"/quitter")==0){
+            quitter(c);
         } else {
             envoisimple(c, temp, date);
         }
@@ -392,6 +392,22 @@ void envoisimple(Client c, char *temp, char *date){
                 {
                     printf("%sErreur de transmission\n", date);
                 }
+            }
+        }
+    }
+}
+
+void quitter(Client c){
+    for(int i = 0; i < CLIENT_MAXIMUM; i++)
+    {
+        if(&list_c[i].client)
+        {
+            if(strcmp(&list_c[i].client.pseudo,c.pseudo)==0 && list_c[i].connecte == 1)
+            {
+                pthread_cancel(list_c[i].thread);
+                close(list_c[i].socket);
+                list_c[i].connecte = 0;
+                printf("Socket du client %s fermé",c.pseudo);
             }
         }
     }

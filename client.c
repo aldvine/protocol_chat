@@ -87,9 +87,9 @@ int main(void)
                 // boucle sur l'envoi de message
                
                 LireMessage(&c);
-                if(strcmp(c.message,"/quit")==0){
-                    quitServer(sock,c);
+                if(strcmp(c.message,"/quitter")==0){
                     pthread_cancel(thread);
+                    quitServer(sock,c);
                     // close(sock);
                     return 0;
                     break;
@@ -103,7 +103,7 @@ int main(void)
                     if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
                         printf("Erreur de transmission\n");
                     }
-                }else if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
+                } else if (send(sock, &c, sizeof(c), 0) == SOCKET_ERROR){
                     printf("Erreur de transmission\n");
                 }
             }
@@ -189,13 +189,18 @@ void infoClient(Client *c){
 }
 
 void quitServer(SOCKET s, Client c){
-    strcpy(c.message, "/quit");
-    send(s, &c, sizeof(c), 0);
+    strcpy(c.message, "/quitter");
+    if(send(s, &c, sizeof(c), 0) == SOCKET_ERROR){
+        printf("Erreur trnasmission\n");
+    } else {
+        printf("Message quitter transmis\n");
+    }
     // TODO faire la partie serveur pour passer le client.connecte =0;
     strcpy(c.message, c.pseudo);
     strcpy(c.pseudo,"Serveur");
     strcpy(c.message,  strcat(c.message, " a quitté le salon.\n"));
     printf("debug : %s\n",c.message);
     send(s, &c, sizeof(c), 0); // envoie de l'information aux client du salon
-    // close(s); // fermeture socket
+    sleep(3);
+    close(s); // fermeture socket
 }
