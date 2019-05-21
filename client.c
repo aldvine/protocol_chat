@@ -176,9 +176,13 @@ void *messageServer(void *socket)
             if (statusSocket != SOCKET_ERROR)
             {
                 if(strcmp(c.pseudo,"Serveur")==0 && strcmp(c.message,"/full")==0){
-                     close(sock); // fermeture socket
-                     exit(errno);
-                }else{
+                    printf("Le serveur est plein, déconnexion forcée\n");
+                    close(sock); // fermeture socket
+                    exit(errno);
+                } else if(strcmp(c.pseudo,"Serveur")==0 && strcmp(c.message,"/exit")==0){
+                    close(sock); // fermeture socket
+                    exit(errno);
+                } else{
                     printf("%s\n", c.message);
                 }
             }

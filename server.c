@@ -284,7 +284,7 @@ void verifPseudo(ClientConfig cliConf, Client c){
         if (send(cliConf.socket, &cli_temp, sizeof(cli_temp), 0) == SOCKET_ERROR){
             printf("Problème de transmission");
         }
-        strcpy(cli_temp.message, "/full");
+        strcpy(cli_temp.message, "/exit");
     }else{
         strcpy(cli_temp.pseudo ,"Serveur");
         strcpy(cli_temp.message, "Bienvenue sur le chat en ligne !");
