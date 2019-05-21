@@ -41,9 +41,11 @@ ClientConfig list_c[CLIENT_MAXIMUM];
 int nb = 0;
 SOCKET ssock;
 
+//Liste des fonction du programme server
 void *messageClient(void *clientConf);
 void sendMessage(ClientConfig cliConf, Client c);
 void sendMessageToDest(ClientConfig cConf);
+int compare(const char* chaine1, const char* chaine2);
 void verifPseudo(ClientConfig cliConf, Client c);
 void liste(ClientConfig clientConf, Client c, char *date, char *temp);
 void listechannel(ClientConfig clientConf, Client c, char *date, char *temp);
@@ -54,7 +56,6 @@ void quitter(Client c);
 int main(void)
 {
     /* Socket et contexte d'adressage du serveur */
-
     SOCKADDR_IN sin;
 
     socklen_t recsize = sizeof(sin);
@@ -104,18 +105,21 @@ int main(void)
                 ClientConfig clientConf ;
                 SOCKET socket_temp;
                 
+                //Programme qui permet de connecter des clients au serveur en continu
                 while (1)
                 {
                     socket_temp=accept(ssock, (SOCKADDR *)&csin, &crecsize);
                     for (int j = 0; j < CLIENT_MAXIMUM; j++){
                         if(list_c[j].connecte==0){
+                            //On ajoute les clients qui se connectes au serveur dans le tableau list_c et on créer un thread pour ce client
+                            //Ainsi qu'une connexion entre le socket client et celui du serveur
                             nb=j;
                             list_c[nb].socket = socket_temp; 
                             list_c[nb].connecte = 1; 
                             printf("Un client se connecte avec la socket %d de %s:%d\n", csock, inet_ntoa(csin.sin_addr), htons(csin.sin_port));
-                            pthread_create(&list_c[nb].thread, NULL, messageClient, &list_c[nb]); // utiliser le tableau pour passer le client.
+                            pthread_create(&list_c[nb].thread, NULL, messageClient, &list_c[nb]);
                             break;
-                        }else if(j==CLIENT_MAXIMUM-1){
+                        }else if(j==CLIENT_MAXIMUM-1){ //Si le nombre de client maximum est atteint alors on déconnecte le client du serveur
                             clientConf.socket = socket_temp;
                             Client c_temp ;
                             strcpy(c_temp.pseudo, "Serveur");
@@ -124,7 +128,6 @@ int main(void)
                             sendMessageToDest(clientConf);
                             printf("Rejet d'un client pour cause :serveur plein\n");
                             close(socket_temp);
-                            // envoyé messsage serveur plein au client
                         }
                     }
                    
@@ -150,19 +153,17 @@ int main(void)
     return EXIT_SUCCESS;
 }
 
-// récuperation d'un message client
+//Thread exécuté pour chaque client : récuperation d'un message client, et envoi des messages
 void *messageClient(void *clientConf)
 {
     fd_set readfs;
     ClientConfig * clientC = (ClientConfig *) clientConf;
-    // on travail avec clientC;
   
     int sock = *(int *)socket; // récuperation de la socket client passé en parametre
     int statusSocket = 0;
     while (statusSocket != SOCKET_ERROR)
     {
-        /* On vide l'ensemble de lecture et on lui ajoute 
-                        la socket serveur */
+        /* On vide l'ensemble de lecture et on lui ajoute la socket serveur */
         FD_ZERO(&readfs);      // mise à zero lecture;
         FD_SET((*clientC).socket, &readfs); // récuperation des lecture
         /* Si une erreur est survenue au niveau du select */
@@ -173,8 +174,7 @@ void *messageClient(void *clientConf)
             pthread_exit(NULL);
         }
 
-        /* On regarde si la socket serveur contient des 
-                        informations à lire */
+        /* On regarde si la socket serveur contient des informations à lire */
         if (FD_ISSET((*clientC).socket, &readfs))
         {
             // lecture du message recu
@@ -191,7 +191,6 @@ void *messageClient(void *clientConf)
                     //fermeture du thread 
                     printf("Extinction du thread du client (%s)\n",(*clientC).client.pseudo);
                     pthread_exit(NULL);
-                    // quitter((*clientC).client);
                 }
                 sendMessage(*clientC,(*clientC).client);
             }
@@ -200,8 +199,7 @@ void *messageClient(void *clientConf)
     close(sock);
 }
 
-// faire la fonction permettant d'envoyé un message au bon client en utilisant la socket serveur (var global)
-// il faudra probablement utiliser les mutex pour verouiller la liste de sockets client lors de la lecture ou l'ecriture
+//Fonction appelé par le thread client pour envoyer un message
 void sendMessage(ClientConfig cliConf ,Client c)
 {
     ClientConfig clientConf;
@@ -214,26 +212,27 @@ void sendMessage(ClientConfig cliConf ,Client c)
 
     if(c.message[0] != '\0'){
     
-        if(strcmp(c.message, "/connect")==0)
+        if(strcmp(c.message, "/connect")==0)//Si le message est '/connect' alors on fait une vérification de pseudo
         {
             verifPseudo(cliConf, c);
             
-        }else if(strcmp(c.message, "/liste")==0){
+        }else if(strcmp(c.message, "/liste")==0){//Si le message est '/liste' alors on envoi la liste des utilisateurs situés sur le channel du client
             liste(clientConf, c, date, temp);
 
-        } else if(strcmp(c.message, "/listechannel")==0){
+        } else if(strcmp(c.message, "/listechannel")==0){//Si le message est '/listechanel' alors on envoi la liste des chaînes au client
             listechannel(clientConf, c, date, temp);
 
-        } else if(strcmp(c.message, "/channel")==0) 
+        } else if(strcmp(c.message, "/channel")==0) //Si le message est '/channel' alors on change la chaîne du client
         {
             channel(c, date);
 
-        } else {
+        } else {//Sinon on envoi le message à tout les utilisateurs situés sur la chaîne du client
             envoisimple(c, temp, date);
         }
     }
 }
 
+//Fonction d'envoi de message au client lorsque le serveur est plein
 void sendMessageToDest(ClientConfig cConf)
 {
     Client c= cConf.client;
@@ -253,6 +252,8 @@ void sendMessageToDest(ClientConfig cConf)
     }
 }
 
+//Fonction qui permet de comparer 2 chaîne de caractère
+//Retourne 0 si les deux chaînes dont différentes, sinon 1
 int compare(const char* chaine1, const char* chaine2)
 {   unsigned int i=0;
     if( strlen(chaine1) != strlen(chaine2) )
@@ -263,6 +264,7 @@ int compare(const char* chaine1, const char* chaine2)
     return 1;
 }
 
+//Fonction qui vérifie le pseudo d'un client qui se connecte
 void verifPseudo(ClientConfig cliConf, Client c){
     int pseudoExist =0;
     for(int i = 0; i < CLIENT_MAXIMUM; i++)
@@ -299,6 +301,7 @@ void verifPseudo(ClientConfig cliConf, Client c){
     }
 }
 
+//Fonction qui envoi la liste des utilisateurs situés sur le channel qui a envoyé la commande '/liste'
 void liste(ClientConfig clientConf, Client c, char *date, char *temp){
     strcpy(c.message, date);
     strcat(c.message, "Serveur : Liste des pseudos connectés au channel :");
@@ -328,6 +331,7 @@ void liste(ClientConfig clientConf, Client c, char *date, char *temp){
     }
 }
 
+//Fonction qui envoi la liste des chaînes du chat au client qui a envoyé la commande '/listechannel'
 void listechannel(ClientConfig clientConf, Client c, char *date, char *temp){
     char verif[256];
     strcpy(c.message, date);
@@ -364,6 +368,7 @@ void listechannel(ClientConfig clientConf, Client c, char *date, char *temp){
     }
 }
 
+//Fonction qui change la chaîne d'un client qui a envoyé la chaîne qu'il souhaitait par l'intermédiaire de la commande '/channel'
 void channel(Client c, char *date){
     for (int i = 0; i < CLIENT_MAXIMUM; i++)
     {
@@ -386,6 +391,7 @@ void channel(Client c, char *date){
     }
 }
 
+//Fonction qui envoi le message reçu par un client à tous les utilisateurs de sa chaîne
 void envoisimple(Client c, char *temp, char *date){
     strcpy(temp, c.message);
     for (int i = 0; i < CLIENT_MAXIMUM; i++)
